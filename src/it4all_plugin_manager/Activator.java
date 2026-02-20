@@ -2,6 +2,8 @@ package it4all_plugin_manager;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
@@ -35,6 +37,19 @@ public class Activator extends AbstractUIPlugin {
 			bootstrap.initialize();
 		} catch (Exception exception) {
 			getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, "Plugin manager bootstrap failed.", exception));
+			Display display = Display.getDefault();
+			if (display != null && !display.isDisposed()) {
+				display.asyncExec(() -> {
+					if (display.isDisposed()) {
+						return;
+					}
+					MessageDialog.openError(
+						display.getActiveShell(),
+						"IT4All Plugin Manager",
+						"Nem sikerült automatikusan felismerni az Eclipse telepítési útvonalat. "
+							+ "A plugin manager fájlműveletei le vannak tiltva, amíg a hiba fennáll.");
+				});
+			}
 		}
 	}
 

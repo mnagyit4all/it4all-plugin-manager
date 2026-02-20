@@ -26,6 +26,9 @@ public class TempPluginScanner {
 		List<PluginRecord> records = new ArrayList<>();
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(tempDirectory)) {
 			for (Path entry : stream) {
+				if (!isPluginEntry(entry)) {
+					continue;
+				}
 				String fileName = entry.getFileName().toString();
 				String realName = metadataReader.readRealName(entry).orElse(fileName);
 				records.add(new PluginRecord(fileName, realName, PluginState.TEMP));
@@ -33,5 +36,13 @@ public class TempPluginScanner {
 		}
 
 		return records;
+	}
+
+	private boolean isPluginEntry(Path entry) {
+		if (Files.isDirectory(entry)) {
+			return true;
+		}
+		String fileName = entry.getFileName().toString().toLowerCase();
+		return fileName.endsWith(".jar");
 	}
 }

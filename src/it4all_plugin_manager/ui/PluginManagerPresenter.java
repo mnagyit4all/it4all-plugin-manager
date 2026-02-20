@@ -23,9 +23,18 @@ public class PluginManagerPresenter {
 	}
 
 	public List<PluginRecord> apply(List<PluginListItem> items) throws IOException {
+		Map<String, PluginState> currentStateByFileName = new LinkedHashMap<>();
+		for (PluginRecord record : pluginManagerService.getRegisteredPlugins()) {
+			currentStateByFileName.put(record.getFileName(), record.getState());
+		}
+
 		Map<String, PluginState> desiredStateByFileName = new LinkedHashMap<>();
 		for (PluginListItem item : items) {
-			desiredStateByFileName.put(item.getFileName(), item.toDesiredState());
+			PluginState desired = item.toDesiredState();
+			PluginState current = currentStateByFileName.get(item.getFileName());
+			if (current != null && current != desired) {
+				desiredStateByFileName.put(item.getFileName(), desired);
+			}
 		}
 		return pluginManagerService.applyStates(desiredStateByFileName);
 	}

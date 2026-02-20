@@ -13,6 +13,8 @@ import it4all_plugin_manager.core.registry.PluginRegistryStore;
 import it4all_plugin_manager.core.service.PluginManagerService;
 
 public class PluginManagerBootstrap {
+	private static final String REGISTRY_FILE_NAME = "plugin-manager-registry.json";
+	private static final CollisionPolicy COLLISION_POLICY = CollisionPolicy.SKIP;
 
 	private PluginManagerService pluginManagerService;
 
@@ -24,13 +26,13 @@ public class PluginManagerBootstrap {
 		}
 
 		EclipsePaths eclipsePaths = resolved.get();
-		Path registryPath = eclipsePaths.getTemp().resolve("plugin-manager-registry.json");
+		Path registryPath = eclipsePaths.getTemp().resolve(REGISTRY_FILE_NAME);
 		pluginManagerService = new PluginManagerService(
 			eclipsePaths,
 			new PluginRegistryStore(registryPath),
 			new TempPluginScanner(new ManifestPluginMetadataReader()),
 			new PluginFileMover(),
-			CollisionPolicy.SKIP);
+			COLLISION_POLICY);
 
 		pluginManagerService.initialize();
 	}

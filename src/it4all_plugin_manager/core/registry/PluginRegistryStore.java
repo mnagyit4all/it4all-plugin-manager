@@ -28,16 +28,45 @@ public class PluginRegistryStore {
 			return List.of();
 		}
 
-		String content = Files.readString(registryPath, StandardCharsets.UTF_8);
+		String content = Files.readString(registryPath, StandardCharsets.UTF_8).trim();
+		if (content.isEmpty()) {
+			return List.of();
+		}
+		if (!content.startsWith("[") || !content.endsWith("]")) {
+			throw new IOException("Registry format is invalid.");
+		}
+
 		List<PluginRecord> records = new ArrayList<>();
+		int index = 0;
 		Matcher matcher = RECORD_PATTERN.matcher(content);
 		while (matcher.find()) {
+			validateAllowedSegment(content.substring(index, matcher.start()));
 			records.add(new PluginRecord(
-				matcher.group(1),
-				matcher.group(2),
+				unescape(matcher.group(1)),
+				unescape(matcher.group(2)),
 				PluginState.valueOf(matcher.group(3))));
+			index = matcher.end();
 		}
-		return records;
+		validateAllowedSegment(content.substring(index));
+
+		if (!records.isEmpty()) {
+			return records;
+		}
+		if ("[]".equals(content.replaceAll("\\s+", ""))) {
+			return records;
+		}
+		throw new IOException("Registry format is invalid or corrupted.");
+	}
+
+	private void validateAllowedSegment(String segment) throws IOException {
+		String normalized = segment.replaceAll("\\s+", "");
+		if (normalized.isEmpty() || "[".equals(normalized) || "]".equals(normalized)
+			|| ",[".equals(normalized) || "],".equals(normalized) || ",".equals(normalized)) {
+			return;
+		}
+		if (!normalized.matches("^[\\[\\],]*$")) {
+			throw new IOException("Registry contains invalid content.");
+		}
 	}
 
 	public void save(List<PluginRecord> records) throws IOException {
@@ -92,5 +121,27 @@ public class PluginRegistryStore {
 
 	private String escape(String value) {
 		return value.replace("\\", "\\\\").replace("\"", "\\\"");
+	}
+
+	private String unescape(String value) {
+		StringBuilder builder = new StringBuilder();
+		boolean escaping = false;
+		for (int i = 0; i < value.length(); i++) {
+			char current = value.charAt(i);
+			if (escaping) {
+				builder.append(current);
+				escaping = false;
+				continue;
+			}
+			if (current == '\\') {
+				escaping = true;
+				continue;
+			}
+			builder.append(current);
+		}
+		if (escaping) {
+			builder.append('\\');
+		}
+		return builder.toString();
 	}
 }

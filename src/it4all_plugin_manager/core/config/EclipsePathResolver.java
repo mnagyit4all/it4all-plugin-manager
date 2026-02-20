@@ -1,6 +1,7 @@
 package it4all_plugin_manager.core.config;
 
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -11,23 +12,47 @@ public class EclipsePathResolver {
 		String homeLocation = System.getProperty("eclipse.home.location");
 		if (homeLocation != null && !homeLocation.isBlank()) {
 			Path pathFromHome = toPath(homeLocation);
-			if (pathFromHome != null) {
-				return Optional.of(new EclipsePaths(pathFromHome));
+			Path eclipseRoot = findEclipseRoot(pathFromHome);
+			if (eclipseRoot != null) {
+				return Optional.of(new EclipsePaths(eclipseRoot));
 			}
 		}
 
 		String userDir = System.getProperty("user.dir");
 		if (userDir != null && !userDir.isBlank()) {
-			return Optional.of(new EclipsePaths(Paths.get(userDir)));
+			Path eclipseRoot = findEclipseRoot(Paths.get(userDir));
+			if (eclipseRoot != null) {
+				return Optional.of(new EclipsePaths(eclipseRoot));
+			}
 		}
 
 		return Optional.empty();
 	}
 
 	private Path toPath(String pathValue) {
-		if (pathValue.startsWith("file:")) {
-			return Paths.get(URI.create(pathValue));
+		try {
+			if (pathValue.startsWith("file:")) {
+				return Paths.get(URI.create(pathValue));
+			}
+			return Paths.get(pathValue);
+		} catch (Exception exception) {
+			return null;
 		}
-		return Paths.get(pathValue);
+	}
+
+	private Path findEclipseRoot(Path start) {
+		if (start == null) {
+			return null;
+		}
+
+		Path current = start.toAbsolutePath().normalize();
+		while (current != null) {
+			if (Files.isDirectory(current.resolve("dropins"))) {
+				return current;
+			}
+			current = current.getParent();
+		}
+
+		return null;
 	}
 }
