@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+	<extension
+		point="org.eclipse.ui.views">
+		<view
+			id="it4all_plugin_manager.views.PluginManagerView"
+			name="IT4All Plugin Manager"
+			class="it4all_plugin_manager.ui.PluginManagerView"
+			category="org.eclipse.ui">
+		</view>
+	</extension>
+	<extension
+		point="org.eclipse.ui.commands">
+		<command
+			id="it4all_plugin_manager.commands.openPluginManagerView"
+			name="IT4All Plugin Manager">
+		</command>
+	</extension>
+	<extension
+		point="org.eclipse.ui.handlers">
+		<handler
+			class="it4all_plugin_manager.ui.OpenPluginManagerViewHandler"
+			commandId="it4all_plugin_manager.commands.openPluginManagerView">
+		</handler>
+	</extension>
+	<extension
+		point="org.eclipse.ui.menus">
+		<menuContribution
+			locationURI="menu:window?after=additions">
+			<command
+				commandId="it4all_plugin_manager.commands.openPluginManagerView"
+				label="IT4All Plugin Manager"
+				style="push">
+			</command>
+		</menuContribution>
+		<menuContribution
+			locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+			<command
+				commandId="it4all_plugin_manager.commands.openPluginManagerView"
+				label="IT4All Plugin Manager"
+				style="push">
+			</command>
+		</menuContribution>
+	</extension>
+</plugin>
