@@ -118,7 +118,8 @@ public class PluginManagerView extends ViewPart {
 				"A módosítások alkalmazva. Az Eclipse újraindítása kötelező a konzisztens plugin állapothoz.");
 			loadItemsIntoViewer();
 		} catch (IOException exception) {
-			MessageDialog.openError(getSite().getShell(), "Plugin Manager", "Hiba történt az alkalmazás közben.");
+			String details = exception.getMessage() == null ? "Ismeretlen hiba." : exception.getMessage();
+			MessageDialog.openError(getSite().getShell(), "Plugin Manager", "Hiba történt az alkalmazás közben:\n" + details);
 		}
 	}
 
