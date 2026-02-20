@@ -6,6 +6,7 @@
 		<view
 			id="it4all_plugin_manager.views.PluginManagerView"
 			name="IT4All Plugin Manager"
+			icon="icons/plugin_16.png"
 			class="it4all_plugin_manager.ui.PluginManagerView"
 			category="org.eclipse.ui">
 		</view>
@@ -30,6 +31,7 @@
 			locationURI="menu:window?after=additions">
 			<command
 				commandId="it4all_plugin_manager.commands.openPluginManagerView"
+				icon="icons/plugin_16.png"
 				label="IT4All Plugin Manager"
 				style="push">
 			</command>
@@ -38,6 +40,7 @@
 			locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
 			<command
 				commandId="it4all_plugin_manager.commands.openPluginManagerView"
+				icon="icons/plugin_16.png"
 				label="IT4All Plugin Manager"
 				style="push">
 			</command>
