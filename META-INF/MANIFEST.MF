@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: It4all-plugin-manager
+Bundle-SymbolicName: it4all-plugin-manager
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: it4all_plugin_manager.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Automatic-Module-Name: it4all.plugin.manager
+Bundle-ActivationPolicy: lazy
