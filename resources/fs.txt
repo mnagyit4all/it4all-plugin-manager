@@ -1,0 +1,162 @@
+Itt található a részletes Funkcionális Specifikáció (FS) a kért Eclipse Plugin Manager fejlesztéséhez.
+
+---
+
+# Funkcionális Specifikáció (FS) – Dynamic Plugin Manager for Eclipse
+
+## 1. Rendszer áttekintése és célja
+
+A modul célja egy olyan Eclipse RCP/IDE bővítmény (plugin) megvalósítása, amely lehetővé teszi harmadik féltől származó Eclipse pluginok (`.jar` / OSGi bundle) dinamikus importálását, engedélyezését (Enable), tiltását (Disable) és állapotuk perzisztens kezelését az alkalmazás újraindításai között.
+
+Az OSGi architektúra miatt egy futó Java-környezetben a JAR-ok fizikai betöltése/eltávolítása relooping vagy OSGi framework restart nélkül instabilitást okozhat. Ezért a rendszer a **dropins / config.ini** vagy az **Equinox OSGi BundleState Persistent Configuration** iparági szabványt követi: az importált bővítmények tiltott állapotban kerülnek regisztrálásra, és az állapotváltoztatások az Eclipse következő elindításakor lépnek érvénybe.
+
+---
+
+## 2. Felhasználói felület (UI / UX) specifikációja
+
+A plugin egy különálló View-ként (Eclipse ViewPart) jelenik meg az IDE-ben ("Plugin Manager").
+
+**UI elemek és elrendezés:**
+
+* **Plugin Lista (TableViewer / TreeViewer):**
+* **Plugin Név (Name / Symbolic Name):** Megjeleníti a bővítmény nevét és verzióját.
+* **Státusz (Status):** Vizuális állapotjelző:
+* `ENABLED` (Zöld jelzés): A plugin aktív vagy a következő indításkor betöltődik.
+* `DISABLED` (Szürke / Piros jelzés): A plugin inaktív, nem töltődik be.
+
+
+
+
+* **Akció gombok:**
+* **Import gombsor (Import Plugin):** Rákattintva megnyitja az operációs rendszer natív fájlválasztó ablakát (`FileDialog`).
+* **Enable / Disable Toggle gomb / Checbox:** A kijelölt plugin állapotának átváltására szolgál.
+
+
+
+---
+
+## 3. Működési logika és Funkcionális Követelmények
+
+### 3.1. Plugin Importálása
+
+1. A felhasználó az **Import** gombra kattint.
+2. Megnyílik a fájlválasztó (`FileDialog`), ahol kizárólag `.jar` kiterjesztésű fájlok választhatók ki.
+3. A fájl kiválasztása után a rendszer átmásolja a JAR fájlt az Eclipse belső tárhelyére (pl. `.metadata/.plugins/com.example.pluginmanager/storage/` vagy a dedikált `dropins/` mappába).
+4. **Alapértelmezett állapot:** Minden újonnan beimportált plugin státusza automatikusan **`DISABLED`** lesz.
+5. A nézet frissül, és megjelenik benne az új plugin `DISABLED` státusszal.
+
+### 3.2. Állapotkezelés (Enable / Disable)
+
+1. A felhasználó kiválaszt egy elemet a listából, majd módosítja az állapotát (Enable / Disable).
+2. A felület kiírja a változás állapotát, és egy figyelmeztető üzenetet jelenít meg: *„A változtatások az Eclipse újraindítása után lépnek életbe.”*
+3. Az új állapot elmentésre kerül a plugin konfigurációs fájljába (`manager_state.json` vagy `DialogSettings`).
+
+### 3.3. Indításkori csekkolás (Lifecycle Management)
+
+1. Az Eclipse / RCP alkalmazás indulásakor az **Activator** (`BundleActivator.start()`) lefut.
+2. A Plugin Manager beolvassa a perzisztens állapotfájlt.
+3. **Validáció & Betöltés:**
+* A `DISABLED` jelölésű bővítményeket a rendszer kizárja a betöltési sorrendből (vagy eltávolítja a `dropins` aktív könyvtárából / OSGi `stop()` állapotban tartja).
+* Az `ENABLED` jelölésű bővítményeket az OSGi Framework elindítja (`Bundle.start()`).
+
+
+
+---
+
+## 4. Technikai Architektúra & Megvalósítási útmutató
+
+### 4.1. Adatmodell & Mappaszerkezet
+
+```text
+{eclipse_workspace}/.metadata/.plugins/com.example.pluginmanager/
+├── storage/                # Ide másolódnak a beimportált .jar fájlok
+│   ├── custom-plugin-1.jar
+│   └── custom-plugin-2.jar
+└── config.json             # A státuszok perzisztens tárolása
+
+```
+
+**Minta `config.json` fájl:**
+
+```json
+[
+  {
+    "symbolicName": "com.example.customplugin",
+    "version": "1.0.0",
+    "jarPath": "storage/custom-plugin-1.jar",
+    "enabled": false
+  }
+]
+
+```
+
+---
+
+## 5. Nem-funkcionális Követelmények és Hibakezelés
+
+| Terület | Követelmény / Kezelés |
+| --- | --- |
+| **Hibás JAR fájl** | Ha a beimportált `.jar` nem érvényes OSGi bundle (hiányzik a `MANIFEST.MF` vagy `Bundle-SymbolicName`), az importálás megszakad és hibaüzenet jelenik meg. |
+| **Összeütközés (Conflict)** | Ha ugyanolyan `SymbolicName`-ű és verziójú plugin már létezik, a rendszer rákérdez a felülírásra. |
+| **Teljesítmény** | Az indításkori ellenőrzés nem növelheti az alkalmazás indulási idejét 500 ms-nál többel. |
+
+Jelenlegi mappa struktúra
+
+Folder PATH listing
+C:.
+|   .classpath
+|   .gitignore
+|   .project
+|   build.properties
+|   plugin.xml
+|   
++---.settings
+|       org.eclipse.core.resources.prefs
+|       org.eclipse.jdt.core.prefs
+|       
++---bin
+|   \---pluginmanager
+|       |   Activator.class
+|       |   
+|       +---model
+|       |       PluginItem.class
+|       |       
+|       +---service
+|       |       BundleValidationService.class
+|       |       ConfigService.class
+|       |       PluginLifecycleService.class
+|       |       StorageService.class
+|       |       
+|       \---ui
+|               PluginContentProvider.class
+|               PluginLabelProvider.class
+|               PluginManagerView.class
+|               
++---dist
++---icons
+|       plugin_16.png
+|       plugin_32.png
+|       
++---META-INF
+|       MANIFEST.MF
+|       
++---resources
+|       fs.txt
+|       
+\---src
+    \---pluginmanager
+        |   Activator.java
+        |   
+        +---model
+        |       PluginItem.java
+        |       
+        +---service
+        |       BundleValidationService.java
+        |       ConfigService.java
+        |       PluginLifecycleService.java
+        |       StorageService.java
+        |       
+        \---ui
+                PluginContentProvider.java
+                PluginLabelProvider.java
+                PluginManagerView.java
