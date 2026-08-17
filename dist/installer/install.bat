@@ -1,28 +1,32 @@
 <# :
 @echo off
+cd /d "%~dp0"
+set "INSTALLER_DIR=%~dp0"
+chcp 65001 >nul
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Expression (Get-Content '%~f0' -Raw)"
 pause
 exit /b
 #>
 
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms
 
-Write-Host "Eclipse Dropins mappa keresese..." -ForegroundColor Cyan
+Write-Host "Eclipse Dropins mappa keresése..." -ForegroundColor Cyan
 
 $dropinsPath = $null
 
-# 1. Ha fut az Eclipse, abból azonnal kiszámoljuk a dropins útvonalát
+# 1. Ha fut az Eclipse, abból határozzuk meg a dropins mappát
 $eclipseProc = Get-Process -Name "eclipse" -ErrorAction SilentlyContinue
 if ($eclipseProc) {
     $exePath = $eclipseProc.MainModule.FileName
     $possibleDropins = Join-Path (Split-Path $exePath) "dropins"
     if (Test-Path $possibleDropins) {
         $dropinsPath = $possibleDropins
-        Write-Host "Megtalalva a futo Eclipse alapján: $dropinsPath" -ForegroundColor Green
+        Write-Host "Megtalálva a futó Eclipse alapján: $dropinsPath" -ForegroundColor Green
     }
 }
 
-# 2. Ha nem fut, ellenőrizzük a szokásos Windows telepítési helyeket
+# 2. Ha nem fut, ellenőrizzük a szokásos Windows útvonalakat
 if (-not $dropinsPath) {
     $commonPaths = @(
         "$env:LOCALAPPDATA\Programs\Eclipse\dropins",
@@ -37,15 +41,15 @@ if (-not $dropinsPath) {
         $expanded = Resolve-Path $path -ErrorAction SilentlyContinue
         if ($expanded -and (Test-Path $expanded.Path)) {
             $dropinsPath = $expanded.Path
-            Write-Host "Megtalalva az alapertelmezett utvonalon: $dropinsPath" -ForegroundColor Green
+            Write-Host "Megtalálva az alapértelmezett útvonalon: $dropinsPath" -ForegroundColor Green
             break
         }
     }
 }
 
-# 3. Ha automatikusan nem találta meg, felugró ablakban kérdezzük meg
+# 3. Kézi választás, ha nem található
 if (-not $dropinsPath) {
-    Write-Host "Nem talalhato automatikusan az Eclipse. Kerlek valaszd ki a 'dropins' mappat!" -ForegroundColor Yellow
+    Write-Host "Nem található automatikusan az Eclipse. Kérlek válaszd ki a 'dropins' mappát!" -ForegroundColor Yellow
     
     $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
     $folderBrowser.Description = "Válaszd ki az Eclipse 'dropins' mappáját"
@@ -53,25 +57,28 @@ if (-not $dropinsPath) {
     if ($folderBrowser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $dropinsPath = $folderBrowser.SelectedPath
     } else {
-        Write-Host "Telepites megszakitva." -ForegroundColor Red
+        Write-Host "Telepítés megszakítva." -ForegroundColor Red
         return
     }
 }
 
-# 4. Megkeressük a JAR fájlt az install.bat mellett
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+# 4. Pontos mappa meghatározása a Batch által átadott környezeti változóból
+$scriptDir = $env:INSTALLER_DIR
+if (-not $scriptDir -or -not (Test-Path $scriptDir)) {
+    $scriptDir = (Get-Location).Path
+}
+
 $jarFile = Get-ChildItem -Path $scriptDir -Filter "*.jar" -ErrorAction SilentlyContinue | Select-Object -First 1
 
 if ($jarFile) {
-    # Átmozgatjuk (Move-Item) a jar fájlt a dropins mappába
     Move-Item -Path $jarFile.FullName -Destination $dropinsPath -Force
     
     Write-Host "`n----------------------------------------" -ForegroundColor Green
-    Write-Host "SIKERES TELEPITES!" -ForegroundColor Green
-    Write-Host "A(z) '$($jarFile.Name)' atmozgatva ide:"
+    Write-Host "SIKERES TELEPÍTÉS!" -ForegroundColor Green
+    Write-Host "A(z) '$($jarFile.Name)' áthelyezve ide:"
     Write-Host "$dropinsPath" -ForegroundColor Gray
-    Write-Host "Inditsd ujra az Eclipse-t a plugin aktiválásához!" -ForegroundColor Yellow
+    Write-Host "Indítsd újra az Eclipse-t a plugin aktiválásához!" -ForegroundColor Yellow
     Write-Host "----------------------------------------" -ForegroundColor Green
 } else {
-    Write-Host "`nHiba: Nem található .jar fájl az install.bat mellett!" -ForegroundColor Red
+    Write-Host "`nHiba: Nem található .jar fájl ebben a mappában: $scriptDir" -ForegroundColor Red
 }
